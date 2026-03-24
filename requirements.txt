@@ -2,3 +2,4 @@ discord.py
 aiosqlite
 python-dotenv
 aiohttp
+pip install -r requirements.txt
