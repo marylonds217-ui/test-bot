@@ -1,210 +1,83 @@
-# main.py
-import discord
-from discord.ext import commands
-import asyncio
-import config
-import database as db
-import re
+import os
+from dotenv import load_dotenv
 
-# ========== تعريف الـ Intents أولاً ==========
-intents = discord.Intents.default()
-intents.members = True
-intents.message_content = True
-intents.voice_states = True
+load_dotenv()
 
-# ========== تعريف البوت ==========
-bot = commands.Bot(command_prefix=config.PREFIX, intents=intents)
+TOKEN = os.getenv("DISCORD_TOKEN")
+PREFIX = "!"
+DB_PATH = "bot.db"
 
-# ========== نظام الريبلاي بدون بريفكس ==========
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    
-    # معالجة الأوامر العادية أولاً
-    await bot.process_commands(message)
-    
-    # ========== نظام الريبلاي ==========
-    if message.reference:
-        try:
-            ref_msg = await message.channel.fetch_message(message.reference.message_id)
-            target = ref_msg.author
-            if target.bot:
-                return
-            
-            content = message.content
-            content_lower = content.lower()
-            
-            # إنشاء Context
-            ctx = await bot.get_context(message)
-            
-            # ========== النيك نيم ==========
-            if content_lower.startswith("n"):
-                cog = bot.get_cog("Nickname")
-                if cog:
-                    if len(content) > 1:
-                        new_name = content[1:].strip()
-                        await cog.nickname.callback(cog, ctx, user_input=new_name if new_name else None)
-                    else:
-                        await cog.nickname.callback(cog, ctx, user_input=None)
-            
-            # ========== التحذير ==========
-            elif content_lower in ["ت", "تحذير", "w"]:
-                cog = bot.get_cog("Warn")
-                if cog:
-                    await cog.warn.callback(cog, ctx, user_input=None)
-            
-            # ========== Timeout ==========
-            elif content_lower in ["تايم", "to", "time"]:
-                cog = bot.get_cog("Timeout")
-                if cog:
-                    await cog.timeout.callback(cog, ctx, duration=None, user_input=None)
-            
-            elif content_lower.startswith("تايم "):
-                cog = bot.get_cog("Timeout")
-                if cog:
-                    duration = content[5:].strip()
-                    await cog.timeout.callback(cog, ctx, duration=duration, user_input=None)
-            
-            # ========== الكتم ==========
-            elif content_lower in ["م", "كتم", "m"]:
-                cog = bot.get_cog("Mute")
-                if cog:
-                    await cog.mute.callback(cog, ctx, user_input=None)
-            
-            # ========== فك الكتم ==========
-            elif content_lower in ["فك", "فك_كتم", "um"]:
-                cog = bot.get_cog("Unmute")
-                if cog:
-                    await cog.unmute.callback(cog, ctx, user_input=None)
-            
-            # ========== الطرد ==========
-            elif content_lower in ["ط", "طرد", "k"]:
-                cog = bot.get_cog("Kick")
-                if cog:
-                    await cog.kick.callback(cog, ctx, user_input=None)
-            
-            # ========== الحظر ==========
-            elif content_lower in ["ب", "حظر", "b"]:
-                cog = bot.get_cog("Ban")
-                if cog:
-                    await cog.ban.callback(cog, ctx, user_input=None)
-            
-            # ========== السجن ==========
-            elif content_lower in ["س", "سجن", "j"]:
-                cog = bot.get_cog("Jail")
-                if cog:
-                    await cog.jail.callback(cog, ctx, duration=None, user_input=None)
-            
-            elif content_lower.startswith("سجن "):
-                cog = bot.get_cog("Jail")
-                if cog:
-                    parts = content[4:].strip().split(maxsplit=1)
-                    duration = parts[0] if parts else None
-                    user_input = parts[1] if len(parts) > 1 else None
-                    await cog.jail.callback(cog, ctx, duration=duration, user_input=user_input)
-            
-            # ========== فك السجن ==========
-            elif content_lower in ["فك_سجن", "uj"]:
-                cog = bot.get_cog("Unjail")
-                if cog:
-                    await cog.unjail.callback(cog, ctx, user_input=None)
-            
-        except Exception as e:
-            print(f"Reply error: {e}")
+EMOJIS = {
+    "success": "<:80012verified:1485901284719460403>",
+    "error": "<:6426error:1485901393075376179>",
+    "warning": "<:3warnings:1485901486511624262>",
+    "loading": "<:3536timeout:1485901553490595870>",
+    "ban": "<:ban:1485901519525253173>",
+    "kick": "<:Kick:1485901574344806550>",
+    "mute": "<:servermute:1485901606464520312>",
+    "unmute": "<:6859unmute:1485901623128752189>",
+    "jail": "<:142Jail:1485901641520779366>",
+    "timeout": "<:3536timeout:1485901553490595870>",
+    "warn_1": "<:1warning:1485901428328501308>",
+    "warn_2": "<:2warnings:1485901458179362916>",
+    "warn_3": "<:3warnings:1485901486511624262>",
+    "warns": "<:warnings:1485901661099659325>",
+    "clear": "<:Clear:1485901795824898078>",
+    "save": "<:save:1485901739994513429>",
+    "security": "<:security:1485901778896556063>",
+    "pause": "<:pause:1485901706880614515>",
+    "marry": "<:Marry:1485901683027480596>",
+    "request_marry": "<:Request_Marry:1485901761892847636>",
+    "info": "<:warnings:1485901661099659325>",
+}
 
-@bot.event
-async def on_ready():
-    print(f"✅ Bot is ready!")
-    print(f"📡 Logged in as {bot.user.name}")
-    print(f"🔗 Connected to {len(bot.guilds)} servers")
-    
-    await db.init_db()
-    print("💾 Database initialized")
-    
-    # تحميل جميع الـ Cogs
-    cogs_list = [
-        "cogs.moderation.ban",
-        "cogs.moderation.kick",
-        "cogs.moderation.mute",
-        "cogs.moderation.unmute",
-        "cogs.moderation.clear",
-        "cogs.moderation.clearuser",
-        "cogs.moderation.timeout",
-        "cogs.moderation.ipban",
-        "cogs.moderation.hwidban",
-        "cogs.moderation.unban",
-        "cogs.warns.warn",
-        "cogs.warns.checkwarn",
-        "cogs.warns.removewarn",
-        "cogs.warns.resetwarn",
-        "cogs.jail.jail",
-        "cogs.jail.unjail",
-        "cogs.jail.saveroles",
-        "cogs.jail.restoreroles",
-        "cogs.protection.lock",
-        "cogs.protection.unlock",
-        "cogs.protection.lockdown",
-        "cogs.protection.unlockdown",
-        "cogs.protection.block",
-        "cogs.protection.unblock",
-        "cogs.protection.addrole",
-        "cogs.protection.removerole",
-        "cogs.fun.marry",
-        "cogs.fun.divorce",
-        "cogs.fun.goodnight",
-        "cogs.fun.ez",
-        "cogs.fun.setgif",
-        "cogs.utility.avatar",
-        "cogs.utility.banner",
-        "cogs.utility.userinfo",
-        "cogs.utility.serverinfo",
-        "cogs.utility.roleinfo",
-        "cogs.utility.botinfo",
-        "cogs.utility.nickname",
-        "cogs.utility.help",
-        "cogs.tempvoice.tempvoice",
-        "cogs.tickets.tickets",
-        "cogs.moderation.come",
-        "cogs.moderation.lines",
-    ]
-    
-    for cog in cogs_list:
-        try:
-            await bot.load_extension(cog)
-            print(f"📦 Loaded: {cog}")
-        except Exception as e:
-            print(f"❌ Failed to load {cog}: {e}")
-    
-    print("🎉 Bot is fully ready!")
+COLORS = {
+    "default": 0x000000, "success": 0x00FF00, "error": 0xFF0000,
+    "warning": 0xFFA500, "ban": 0xFF0000, "kick": 0xFF0000,
+    "unban": 0x00FF00, "unmute": 0x00FF00, "unjail": 0x00FF00, "info": 0x000000,
+}
 
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        embed = discord.Embed(
-            title=f"{config.EMOJIS['error']} Permission Error",
-            description="You don't have permission to use this command!",
-            color=config.COLORS["error"]
-        )
-        await ctx.send(embed=embed, delete_after=5)
-    elif isinstance(error, commands.MissingRequiredArgument):
-        embed = discord.Embed(
-            title=f"{config.EMOJIS['error']} Missing Argument",
-            description=f"Usage: `!help {ctx.command.name}`",
-            color=config.COLORS["error"]
-        )
-        await ctx.send(embed=embed, delete_after=5)
-    elif isinstance(error, commands.BadArgument):
-        embed = discord.Embed(
-            title=f"{config.EMOJIS['error']} Invalid Argument",
-            description="Please provide valid arguments.",
-            color=config.COLORS["error"]
-        )
-        await ctx.send(embed=embed, delete_after=5)
-    elif isinstance(error, commands.CommandNotFound):
-        pass
-    else:
-        print(f"⚠️ Error: {error}")
+DELETE_RESPONSE_DELAY = 10
 
-if __name__ == "__main__":
-    bot.run(config.TOKEN)
+COMMAND_PERMISSIONS = {
+    "ban": {"allowed_roles": ["admin_only"]}, "kick": {"allowed_roles": ["admin_only"]},
+    "mute": {"allowed_roles": ["admin_only"]}, "unmute": {"allowed_roles": ["admin_only"]},
+    "clear": {"allowed_roles": ["admin_only"]}, "clearuser": {"allowed_roles": ["admin_only"]},
+    "warn": {"allowed_roles": ["admin_only"]}, "checkwarn": {"allowed_roles": []},
+    "removewarn": {"allowed_roles": ["admin_only"]}, "resetwarn": {"allowed_roles": ["admin_only"]},
+    "jail": {"allowed_roles": ["admin_only"]}, "unjail": {"allowed_roles": ["admin_only"]},
+    "saveroles": {"allowed_roles": ["admin_only"]}, "restoreroles": {"allowed_roles": ["admin_only"]},
+    "lock": {"allowed_roles": ["admin_only"]}, "unlock": {"allowed_roles": ["admin_only"]},
+    "lockdown": {"allowed_roles": ["admin_only"]}, "unlockdown": {"allowed_roles": ["admin_only"]},
+    "block": {"allowed_roles": ["admin_only"]}, "unblock": {"allowed_roles": ["admin_only"]},
+    "addrole": {"allowed_roles": ["admin_only"]}, "removerole": {"allowed_roles": ["admin_only"]},
+    "addallowedrole": {"allowed_roles": ["admin_only"]}, "removeallowedrole": {"allowed_roles": ["admin_only"]},
+    "marry": {"allowed_roles": []}, "divorce": {"allowed_roles": []},
+    "goodnight": {"allowed_roles": []}, "ez": {"allowed_roles": ["admin_only"]},
+    "setgif": {"allowed_roles": ["admin_only"]}, "avatar": {"allowed_roles": []},
+    "banner": {"allowed_roles": []}, "userinfo": {"allowed_roles": []},
+    "serverinfo": {"allowed_roles": []}, "roleinfo": {"allowed_roles": []},
+    "botinfo": {"allowed_roles": []}, "nickname": {"allowed_roles": ["admin_only"]},
+    "help": {"allowed_roles": []}, "timeout": {"allowed_roles": ["admin_only"]},
+    "ipban": {"allowed_roles": ["admin_only"]}, "hwidban": {"allowed_roles": ["admin_only"]},
+    "unban": {"allowed_roles": ["admin_only"]},
+    "come": {"allowed_roles": ["admin_only"], "description": "إرسال دعوة لمستخدم مع رسالة مخصصة"},
+    "line": {"allowed_roles": ["admin_only"], "description": "إضافة قناة لنظام Lines"},
+    "lines": {"allowed_roles": ["admin_only"], "description": "عرض جميع قنوات Lines"},
+    "removeline": {"allowed_roles": ["admin_only"], "description": "إزالة قناة من نظام Lines"},
+    "clearlines": {"allowed_roles": ["admin_only"], "description": "مسح جميع قنوات Lines"},
+}
+
+def get_command_permission(command_name: str) -> list:
+    return COMMAND_PERMISSIONS.get(command_name, {}).get("allowed_roles", [])
+
+def is_command_allowed(command_name: str, user_roles: list) -> bool:
+    permissions = get_command_permission(command_name)
+    if not permissions:
+        return True
+    if "admin_only" in permissions:
+        return "admin_only"
+    for role in user_roles:
+        if str(role.id) in permissions:
+            return True
+    return False
