@@ -2,11 +2,10 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# انسخ ملف المتطلبات أولاً
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# انسخ باقي الملفات
 COPY . .
 
-CMD ["python", "main.py"]
+RUN pip install --no-cache-dir discord.py aiosqlite
+
+CMD ["python", "main.py"]git add .
+git commit -m "Fix and Update"
+git push origin main
