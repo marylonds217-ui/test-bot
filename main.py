@@ -164,6 +164,9 @@ async def on_ready():
         "cogs.utility.nickname",
         "cogs.utility.help",
         "cogs.tempvoice.tempvoice",
+        "cogs.tickets.tickets",
+        "cogs.moderation.come",
+        "cogs.moderation.lines",
     ]
     
     for cog in cogs_list:
