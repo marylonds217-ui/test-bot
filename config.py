@@ -81,6 +81,13 @@ COMMAND_PERMISSIONS = {
     "addallowedrole": {"allowed_roles": ["admin_only"], "description": "إضافة رتبة مصرح بها"},
     "removeallowedrole": {"allowed_roles": ["admin_only"], "description": "إزالة رتبة مصرح بها"},
     
+    # ========== أوامر Temp Voice ==========
+    "temp": {"allowed_roles": ["admin_only"], "description": "أوامر نظام الصوت المؤقت"},
+    "panel": {"allowed_roles": ["admin_only"], "description": "إرسال لوحة التحكم"},
+    
+    # ========== أوامر التذاكر ==========
+    "ticket": {"allowed_roles": ["admin_only"], "description": "نظام التذاكر - !ticket setup, !ticket panel, !ticket logs, !ticket staff, !ticket category"},
+    
     # ========== أوامر ترفيهية - الجميع ==========
     "marry": {"allowed_roles": [], "description": "الارتباط"},
     "divorce": {"allowed_roles": [], "description": "الطلاق"},
