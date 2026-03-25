@@ -12,13 +12,20 @@ async def has_permission(ctx, command_name: str):
         return True
     
     # جلب صلاحيات الأمر من config
-    permission_result = config.is_command_allowed(command_name, ctx.author.roles)
+    permissions = config.get_command_permission(command_name)
     
-    if permission_result == "admin_only":
+    # لو مفيش صلاحيات محددة، الأمر متاح للكل
+    if not permissions:
+        return True
+    
+    # لو الأمر للأدمن فقط (admin_only) والمستخدم مش أدمن
+    if "admin_only" in permissions:
         return False
     
-    if permission_result is True:
-        return True
+    # التحقق من الرتب المحددة
+    for role in ctx.author.roles:
+        if str(role.id) in permissions:
+            return True
     
     return False
 
