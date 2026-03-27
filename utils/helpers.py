@@ -50,6 +50,7 @@ async def send_and_delete(ctx, embed, delete_after=config.DELETE_RESPONSE_DELAY)
     await delete_response(msg, delete_after)
     return msg
 
+
 async def send_permanent(ctx, embed):
     """إرسال رسالة دائمة"""
     return await ctx.send(embed=embed)

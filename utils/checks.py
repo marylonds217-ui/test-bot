@@ -7,24 +7,26 @@ import config
 async def has_permission(ctx, command_name: str):
     """التحقق من صلاحية المستخدم لأمر معين"""
     
-    # التحقق من صلاحية Administrator في Discord
+    # 1. التحقق من صلاحية Administrator في Discord
     if ctx.author.guild_permissions.administrator:
         return True
     
-    # جلب صلاحيات الأمر من config
+    # 2. جلب صلاحيات الأمر من config
     permissions = config.get_command_permission(command_name)
     
-    # لو مفيش صلاحيات محددة، الأمر متاح للكل
+    # 3. لو مفيش صلاحيات محددة، الأمر متاح للكل
     if not permissions:
         return True
     
-    # لو الأمر للأدمن فقط (admin_only) والمستخدم مش أدمن
+    # 4. لو الأمر للأدمن فقط والمستخدم مش أدمن
     if "admin_only" in permissions:
         return False
     
-    # التحقق من الرتب المحددة
-    for role in ctx.author.roles:
-        if str(role.id) in permissions:
+    # 5. التحقق من الرتب المحددة
+    user_role_ids = [str(role.id) for role in ctx.author.roles]
+    
+    for allowed_role in permissions:
+        if allowed_role in user_role_ids:
             return True
     
     return False

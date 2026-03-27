@@ -236,5 +236,12 @@ async def on_command_error(ctx, error):
     else:
         print(f"⚠️ Error: {error}")
 
+@bot.command(name="checkperm")
+async def check_perm(self, ctx, command_name: str):
+    """اختبار الصلاحيات - !checkperm nickname"""
+    has_perm = await has_permission(ctx, command_name)
+    roles = [role.name for role in ctx.author.roles]
+    await ctx.send(f"Command: `{command_name}`\nHas permission: `{has_perm}`\nYour roles: {roles}")
+
 if __name__ == "__main__":
     bot.run(config.TOKEN)
